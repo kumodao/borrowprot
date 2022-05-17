@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { Flex, Button, Box, Card, Heading } from "theme-ui";
 import {
   KumoStoreState,
@@ -26,6 +27,7 @@ import {
   selectForTroveChangeValidation,
   validateTroveChange
 } from "./validation/validateTroveChange";
+import { useDashboard } from "../../hooks/DashboardContext";
 
 const selector = (state: KumoStoreState) => {
   const { trove, fees, price, accountBalance } = state;
@@ -81,9 +83,18 @@ const applyUnsavedNetDebtChanges = (unsavedChanges: Difference, trove: Trove) =>
   return trove.netDebt;
 };
 
+const getPathName = (location: any) => {
+  return location && location.pathname.substring(location.pathname.lastIndexOf("/") + 1);
+};
+
 export const Adjusting: React.FC = () => {
   const { dispatchEvent } = useTroveView();
-  const { trove, fees, price, accountBalance, validationContext } = useKumoSelector(selector);
+  const { fees, price, accountBalance, validationContext } = useKumoSelector(selector);
+  const location = useLocation();
+  const { vaults, adjustTroveT, bctPrice, mco2Price } = useDashboard();
+
+  const vaultType = vaults.find(vault => vault.type === getPathName(location)) ?? vaults[0];
+  const { trove } = vaultType;
   const editingState = useState<string>();
   const previousTrove = useRef<Trove>(trove);
   const [collateral, setCollateral] = useState<Decimal>(trove.collateral);
@@ -94,8 +105,10 @@ export const Adjusting: React.FC = () => {
 
   useEffect(() => {
     if (transactionState.type === "confirmedOneShot") {
+      collateralRatio && adjustTroveT(getPathName(location), collateral, totalDebt, netDebt);
       dispatchEvent("TROVE_ADJUSTED");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactionState.type, dispatchEvent]);
 
   useEffect(() => {
@@ -137,9 +150,17 @@ export const Adjusting: React.FC = () => {
     : Decimal.ZERO;
   const maxCollateral = trove.collateral.add(availableEth);
   const collateralMaxedOut = collateral.eq(maxCollateral);
-  const collateralRatio =
-    !collateral.isZero && !netDebt.isZero ? updatedTrove.collateralRatio(price) : undefined;
-  const collateralRatioChange = Difference.between(collateralRatio, trove.collateralRatio(price));
+  let collateralRatioChange = Difference.between(Decimal.ZERO, Decimal.ZERO);
+  let collateralRatio: Decimal | undefined = undefined;
+  if (getPathName(location) === "bct") {
+    collateralRatio =
+      !collateral.isZero && !netDebt.isZero ? updatedTrove.collateralRatio(bctPrice) : undefined;
+    collateralRatioChange = Difference.between(collateralRatio, trove.collateralRatio(bctPrice));
+  } else if (getPathName(location) === "mco2") {
+    collateralRatio =
+      !collateral.isZero && !netDebt.isZero ? updatedTrove.collateralRatio(mco2Price) : undefined;
+    collateralRatioChange = Difference.between(collateralRatio, trove.collateralRatio(mco2Price));
+  }
 
   const [troveChange, description] = validateTroveChange(
     trove,
@@ -154,15 +175,32 @@ export const Adjusting: React.FC = () => {
   const isTransactionPending =
     transactionState.type === "waitingForApproval" ||
     transactionState.type === "waitingForConfirmation";
-
   if (trove.status !== "open") {
     return null;
   }
 
   return (
-    <Card>
-      <Heading>
-        Trove
+    <Card
+      sx={{
+        background: "rgba(249,248,249,.1)",
+        backgroundColor: "#303553",
+        // color: "rgba(0, 0, 0, 0.87)",
+        transition: "box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
+        boxShadow:
+          "0px 2px 1px -1px rgb(0 0 0 / 20%), 0px 1px 1px 0px rgb(0 0 0 / 14%), 0px 1px 3px 0px rgb(0 0 0 / 12%)",
+        overflow: "hidden",
+        borderRadius: "20px",
+        width: "100%",
+        color: "white"
+      }}
+    >
+      <Heading
+        sx={{
+          background: "linear-gradient(103.69deg, #2b2b2b 18.43%, #525252 100%)",
+          color: "white"
+        }}
+      >
+        {vaultType.type.toUpperCase()} Trove
         {isDirty && !isTransactionPending && (
           <Button variant="titleIcon" sx={{ ":enabled:hover": { color: "danger" } }} onClick={reset}>
             <Icon name="history" size="lg" />
@@ -178,9 +216,18 @@ export const Adjusting: React.FC = () => {
           maxAmount={maxCollateral.toString()}
           maxedOut={collateralMaxedOut}
           editingState={editingState}
-          unit="ETH"
+          unit={getPathName(location).toUpperCase()}
           editedAmount={collateral.toString(4)}
-          setEditedAmount={(amount: string) => setCollateral(Decimal.from(amount))}
+          setEditedAmount={(amount: string) => {
+            setCollateral(Decimal.from(amount));
+          }}
+          tokenPrice={
+            getPathName(location) === "bct"
+              ? bctPrice
+              : getPathName(location) === "mco2"
+              ? mco2Price
+              : Decimal.ZERO
+          }
         />
 
         <EditableRow
@@ -269,7 +316,17 @@ export const Adjusting: React.FC = () => {
         />
 
         <Flex variant="layout.actions">
-          <Button variant="cancel" onClick={handleCancelPressed}>
+          <Button
+            sx={{
+              backgroundColor: "rgb(152, 80, 90)",
+              boxShadow:
+                "rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px",
+              border: "none",
+              color: "white"
+            }}
+            variant="cancel"
+            onClick={handleCancelPressed}
+          >
             Cancel
           </Button>
 
@@ -283,7 +340,18 @@ export const Adjusting: React.FC = () => {
               Confirm
             </TroveAction>
           ) : (
-            <Button disabled>Confirm</Button>
+            <Button
+              sx={{
+                backgroundColor: "rgb(152, 80, 90)",
+                boxShadow:
+                  "rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px",
+                border: "none",
+                color: "white"
+              }}
+              disabled
+            >
+              Confirm
+            </Button>
           )}
         </Flex>
       </Box>

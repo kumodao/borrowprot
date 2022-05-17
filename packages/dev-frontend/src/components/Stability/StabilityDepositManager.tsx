@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Button, Flex } from "theme-ui";
 
 import { Decimal, Decimalish, KumoStoreState } from "@kumodao/lib-base";
 import { KumoStoreUpdate, useKumoReducer, useKumoSelector } from "@kumodao/lib-react";
+
+import { useDashboard } from "../../hooks/DashboardContext";
 
 import { COIN } from "../../strings";
 
@@ -17,11 +20,13 @@ import {
   validateStabilityDepositChange
 } from "./validation/validateStabilityDepositChange";
 
-const init = ({ stabilityDeposit }: KumoStoreState) => ({
-  originalDeposit: stabilityDeposit,
-  editedKUSD: stabilityDeposit.currentKUSD,
-  changePending: false
-});
+const init = ({ stabilityDeposit }: KumoStoreState) => {
+  return {
+    originalDeposit: stabilityDeposit,
+    editedKUSD: stabilityDeposit.currentKUSD,
+    changePending: false
+  };
+};
 
 type StabilityDepositManagerState = ReturnType<typeof init>;
 type StabilityDepositManagerAction =
@@ -29,9 +34,10 @@ type StabilityDepositManagerAction =
   | { type: "startChange" | "finishChange" | "revert" }
   | { type: "setDeposit"; newValue: Decimalish };
 
-const reduceWith = (action: StabilityDepositManagerAction) => (
-  state: StabilityDepositManagerState
-): StabilityDepositManagerState => reduce(state, action);
+const reduceWith =
+  (action: StabilityDepositManagerAction) =>
+  (state: StabilityDepositManagerState): StabilityDepositManagerState =>
+    reduce(state, action);
 
 const finishChange = reduceWith({ type: "finishChange" });
 const revert = reduceWith({ type: "revert" });
@@ -91,8 +97,23 @@ const reduce = (
 
 const transactionId = "stability-deposit";
 
+const getPathName = (location: any) => {
+  return location && location.pathname.substring(location.pathname.lastIndexOf("/") + 1);
+};
+
 export const StabilityDepositManager: React.FC = () => {
-  const [{ originalDeposit, editedKUSD, changePending }, dispatch] = useKumoReducer(reduce, init);
+  const location = useLocation();
+  const { vaults, depositKusd, handleDepositKusd, openStabilityDeposit } = useDashboard();
+  const vaultType = vaults.find(vault => vault.type === getPathName(location)) || vaults[0];
+
+  const [{ originalDeposit, editedKUSD, changePending }, dispatch] = useKumoReducer(reduce, () => {
+    return {
+      originalDeposit: vaultType.stabilityDeposit,
+      editedKUSD: vaultType.stabilityDeposit.currentKUSD,
+      changePending: false
+    };
+  });
+
   const validationContext = useKumoSelector(selectForStabilityDepositChangeValidation);
   const { dispatchEvent } = useStabilityView();
 
@@ -110,17 +131,41 @@ export const StabilityDepositManager: React.FC = () => {
 
   const myTransactionState = useMyTransactionState(transactionId);
 
+
   useEffect(() => {
     if (
       myTransactionState.type === "waitingForApproval" ||
       myTransactionState.type === "waitingForConfirmation"
     ) {
       dispatch({ type: "startChange" });
+      if (validChange?.depositKUSD) {
+        handleDepositKusd(validChange?.depositKUSD, undefined, false);
+      } else if (validChange?.withdrawAllKUSD) {
+        handleDepositKusd(undefined, Decimal.ZERO, true);
+      } else if (validChange?.withdrawKUSD) {
+        handleDepositKusd(undefined, validChange?.withdrawKUSD, false);
+      }
     } else if (myTransactionState.type === "failed" || myTransactionState.type === "cancelled") {
       dispatch({ type: "finishChange" });
     } else if (myTransactionState.type === "confirmedOneShot") {
+      if (depositKusd.depositKUSD) {
+        openStabilityDeposit(
+          getPathName(location),
+          vaultType.stabilityDeposit.currentKUSD.add(depositKusd.depositKUSD)
+        );
+      }
+      if (depositKusd.withdrawAllKUSD) {
+        openStabilityDeposit(getPathName(location), Decimal.ZERO);
+      } else if (depositKusd.withdrawKUSD) {
+        openStabilityDeposit(
+          getPathName(location),
+          vaultType.stabilityDeposit.currentKUSD.sub(depositKusd?.withdrawKUSD)
+        );
+      }
+      handleDepositKusd(undefined, undefined, false);
       dispatchEvent("DEPOSIT_CONFIRMED");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myTransactionState.type, dispatch, dispatchEvent]);
 
   return (
@@ -138,7 +183,17 @@ export const StabilityDepositManager: React.FC = () => {
         ))}
 
       <Flex variant="layout.actions">
-        <Button variant="cancel" onClick={handleCancel}>
+        <Button
+          sx={{
+            backgroundColor: "rgb(152, 80, 90)",
+            boxShadow:
+              "rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px",
+            border: "none",
+            color: "white"
+          }}
+          variant="cancel"
+          onClick={handleCancel}
+        >
           Cancel
         </Button>
 
@@ -147,7 +202,18 @@ export const StabilityDepositManager: React.FC = () => {
             Confirm
           </StabilityDepositAction>
         ) : (
-          <Button disabled>Confirm</Button>
+          <Button
+            sx={{
+              backgroundColor: "rgb(152, 80, 90)",
+              boxShadow:
+                "rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px",
+              border: "none",
+              color: "white"
+            }}
+            disabled
+          >
+            Confirm
+          </Button>
         )}
       </Flex>
     </StabilityDepositEditor>

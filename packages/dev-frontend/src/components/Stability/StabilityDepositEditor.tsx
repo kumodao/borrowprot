@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+
 import { Heading, Box, Card, Button } from "theme-ui";
 
 import {
@@ -30,6 +32,10 @@ type StabilityDepositEditorProps = {
   dispatch: (action: { type: "setDeposit"; newValue: Decimalish } | { type: "revert" }) => void;
 };
 
+const getPathName = (location: any) => {
+  return location && location.pathname.substring(location.pathname.lastIndexOf("/") + 1);
+};
+
 export const StabilityDepositEditor: React.FC<StabilityDepositEditorProps> = ({
   originalDeposit,
   editedKUSD,
@@ -39,6 +45,8 @@ export const StabilityDepositEditor: React.FC<StabilityDepositEditorProps> = ({
 }) => {
   const { kusdBalance, kusdInStabilityPool } = useKumoSelector(select);
   const editingState = useState<string>();
+
+  const location = useLocation();
 
   const edited = !editedKUSD.eq(originalDeposit.currentKUSD);
 
@@ -56,9 +64,27 @@ export const StabilityDepositEditor: React.FC<StabilityDepositEditorProps> = ({
     Difference.between(newPoolShare, originalPoolShare).nonZero;
 
   return (
-    <Card>
-      <Heading>
-        Stability Pool
+    <Card
+      sx={{
+        background: "rgba(249,248,249,.1)",
+        backgroundColor: "#303553",
+        // color: "rgba(0, 0, 0, 0.87)",
+        transition: "box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms",
+        boxShadow:
+          "0px 2px 1px -1px rgb(0 0 0 / 20%), 0px 1px 1px 0px rgb(0 0 0 / 14%), 0px 1px 3px 0px rgb(0 0 0 / 12%)",
+        overflow: "hidden",
+        borderRadius: "20px",
+        width: "90%",
+        color: "white"
+      }}
+    >
+      <Heading
+        sx={{
+          background: "linear-gradient(103.69deg, #2b2b2b 18.43%, #525252 100%)",
+          color: "white"
+        }}
+      >
+        {getPathName(location).toUpperCase()} Stability Pool
         {edited && !changePending && (
           <Button
             variant="titleIcon"
@@ -103,7 +129,7 @@ export const StabilityDepositEditor: React.FC<StabilityDepositEditorProps> = ({
               inputId="deposit-gain"
               amount={originalDeposit.collateralGain.prettify(4)}
               color={originalDeposit.collateralGain.nonZero && "success"}
-              unit="ETH"
+              unit={getPathName(location).toUpperCase()}
             />
 
             <StaticRow

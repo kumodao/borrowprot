@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Text, Flex, Label, Input, SxProp, Button, ThemeUICSSProperties } from "theme-ui";
-
+import { Text, Flex, Label, Input, SxProp, Box, Button, ThemeUICSSProperties } from "theme-ui";
+import { Decimal } from "@kumodao/lib-base";
 import { Icon } from "../Icon";
 
 type RowProps = SxProp & {
@@ -34,6 +34,38 @@ export const Row: React.FC<RowProps> = ({ sx, label, labelId, labelFor, children
       </Label>
       {children}
     </Flex>
+  );
+};
+
+type TokenUsdProps = SxProp & {
+  tokenPrice: Decimal;
+  editedVal: Decimal;
+};
+
+export const TokenUsd: React.FC<TokenUsdProps> = ({
+  sx,
+  tokenPrice = Decimal.ZERO,
+  editedVal = Decimal.ZERO,
+  children
+}) => {
+  return (
+    <Box
+      sx={{
+        p: 0,
+        pl: 0,
+        position: "absolute",
+        pt: "12px",
+        right: "50px",
+        top: "25px",
+        zIndex: 9999,
+        fontSize: 2,
+        fontWeight: "bold",
+        border: 1,
+        borderColor: "transparent"
+      }}
+    >
+      ${editedVal.mul(tokenPrice).prettify(2)}
+    </Box>
   );
 };
 
@@ -98,7 +130,9 @@ export const StaticAmounts: React.FC<StaticAmountsProps & SxProp> = ({
         ...(onClick ? { cursor: "text" } : {}),
 
         ...staticStyle,
-        ...sx
+        ...sx,
+        background: "rgba(249,248,249,.1) !important",
+        backgroundColor: "#303553 !important"
       }}
     >
       <Flex sx={{ alignItems: "center" }}>
@@ -200,6 +234,7 @@ type EditableRowProps = DisabledEditableRowProps & {
   setEditedAmount: (editedAmount: string) => void;
   maxAmount?: string;
   maxedOut?: boolean;
+  tokenPrice?: Decimal;
 };
 
 export const EditableRow: React.FC<EditableRowProps> = ({
@@ -214,13 +249,14 @@ export const EditableRow: React.FC<EditableRowProps> = ({
   editedAmount,
   setEditedAmount,
   maxAmount,
-  maxedOut
+  maxedOut,
+  tokenPrice
 }) => {
   const [editing, setEditing] = editingState;
   const [invalid, setInvalid] = useState(false);
 
   return editing === inputId ? (
-    <Row {...{ label, labelFor: inputId, unit }}>
+    <Row {...{ label, labelFor: inputId, unit }} sx={{ position: "relative" }}>
       <Input
         autoFocus
         id={inputId}
@@ -243,16 +279,23 @@ export const EditableRow: React.FC<EditableRowProps> = ({
         variant="editor"
         sx={{
           ...editableStyle,
+          background: "rgba(249,248,249,.1) !important",
+          backgroundColor: "#303553 !important",
+          color: "white",
           fontWeight: "medium",
           bg: invalid ? "invalid" : "background"
         }}
       />
+      {tokenPrice && <TokenUsd tokenPrice={tokenPrice} editedVal={Decimal.from(editedAmount)} />}
     </Row>
   ) : (
-    <Row labelId={`${inputId}-label`} {...{ label, unit }}>
+    <Row labelId={`${inputId}-label`} {...{ label, unit }} sx={{ position: "relative" }}>
       <StaticAmounts
         sx={{
           ...editableStyle,
+          background: "rgba(249,248,249,.1)",
+          backgroundColor: "#303553",
+          color: "white",
           bg: invalid ? "invalid" : "background"
         }}
         labelledBy={`${inputId}-label`}
@@ -261,7 +304,16 @@ export const EditableRow: React.FC<EditableRowProps> = ({
       >
         {maxAmount && (
           <Button
-            sx={{ fontSize: 1, p: 1, px: 3 }}
+            sx={{
+              fontSize: 1,
+              p: 1,
+              px: 3,
+              backgroundColor: "rgb(152, 80, 90)",
+              boxShadow:
+                "rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px",
+              border: "none",
+              color: "white"
+            }}
             onClick={event => {
               setEditedAmount(maxAmount);
               event.stopPropagation();
