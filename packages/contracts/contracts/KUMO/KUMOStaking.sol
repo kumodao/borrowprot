@@ -2,11 +2,12 @@
 
 pragma solidity 0.8.11;
 
-// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
 import "../Dependencies/BaseMath.sol";
-import "../Dependencies/SafeMath.sol";
-import "../Dependencies/Ownable.sol";
+// import "../Dependencies/SafeMath.sol";
+// import "../Dependencies/Ownable.sol";
 import "../Dependencies/CheckContract.sol";
 import "../Dependencies/console.sol";
 import "../Interfaces/IKUMOToken.sol";
@@ -14,8 +15,8 @@ import "../Interfaces/IKUMOStaking.sol";
 import "../Dependencies/KumoMath.sol";
 import "../Interfaces/IKUSDToken.sol";
 
-contract KUMOStaking is IKUMOStaking, Ownable, CheckContract, BaseMath {
-    using SafeMath for uint;
+contract KUMOStaking is IKUMOStaking, OwnableUpgradeable, CheckContract, BaseMath {
+    using SafeMathUpgradeable for uint;
 
     // bool public isInitialized;
     // --- Data ---
@@ -69,7 +70,7 @@ contract KUMOStaking is IKUMOStaking, Ownable, CheckContract, BaseMath {
         address _activePoolAddress
     ) 
         external 
-        onlyOwner
+        initializer
         override 
     {
         // require(!isInitialized, "Already Initialized");
@@ -80,7 +81,7 @@ contract KUMOStaking is IKUMOStaking, Ownable, CheckContract, BaseMath {
         checkContract(_activePoolAddress);
         // isInitialized = true;
 
-        // __Ownable_init();
+        __Ownable_init();
 
         kumoToken = IKUMOToken(_kumoTokenAddress);
         kusdToken = IKUSDToken(_kusdTokenAddress);
@@ -94,7 +95,7 @@ contract KUMOStaking is IKUMOStaking, Ownable, CheckContract, BaseMath {
         emit BorrowerOperationsAddressSet(_borrowerOperationsAddress);
         emit ActivePoolAddressSet(_activePoolAddress);
 
-        _renounceOwnership();
+        renounceOwnership();
     }
 
     // If caller has a pre-existing stake, send any accumulated ETH and KUSD gains to them. 

@@ -12,12 +12,17 @@ import "./Dependencies/KumoBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
-import "./Dependencies/SafeMath.sol";
+// import "./Dependencies/SafeMath.sol";
 
-contract BorrowerOperations is KumoBase, Ownable, CheckContract, IBorrowerOperations {
-    using SafeMath for uint256;
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+//import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+contract BorrowerOperations is KumoBase, CheckContract, UUPSUpgradeable, IBorrowerOperations {
+    using SafeMathUpgradeable for uint256;
     string constant public NAME = "BorrowerOperations";
-    // bool public isInitialized;
+    bool public isInitialized;
     // --- Connected contract declarations ---
 
     ITroveManager public troveManager;
@@ -111,11 +116,11 @@ contract BorrowerOperations is KumoBase, Ownable, CheckContract, IBorrowerOperat
     )
         external
         override
-        onlyOwner
+        initializer
     {
         // This makes impossible to open a trove with zero withdrawn KUSD
         assert(MIN_NET_DEBT > 0);
-        // require(!isInitialized, "Already initialized");
+        require(!isInitialized, "Already initialized");
         checkContract(_troveManagerAddress);
         checkContract(_activePoolAddress);
         checkContract(_defaultPoolAddress);
@@ -126,9 +131,11 @@ contract BorrowerOperations is KumoBase, Ownable, CheckContract, IBorrowerOperat
         checkContract(_sortedTrovesAddress);
         checkContract(_kusdTokenAddress);
         checkContract(_kumoStakingAddress);
-        // isInitialized = true;
         
-        // __Ownable_init();
+        isInitialized = true;
+        
+        __Ownable_init();
+        __UUPSUpgradeable_init();
 
         troveManager = ITroveManager(_troveManagerAddress);
         activePool = IActivePool(_activePoolAddress);
@@ -153,8 +160,10 @@ contract BorrowerOperations is KumoBase, Ownable, CheckContract, IBorrowerOperat
         emit KUSDTokenAddressChanged(_kusdTokenAddress);
         emit KUMOStakingAddressChanged(_kumoStakingAddress);
 
-        _renounceOwnership();
+        renounceOwnership();
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     // --- Borrower Trove Operations ---
 

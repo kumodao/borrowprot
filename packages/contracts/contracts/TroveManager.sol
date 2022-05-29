@@ -10,13 +10,16 @@ import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/IKUMOToken.sol";
 import "./Interfaces/IKUMOStaking.sol";
 import "./Dependencies/KumoBase.sol";
-import "./Dependencies/Ownable.sol";
+//import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
-import "./Dependencies/SafeMath.sol";
+// import "./Dependencies/SafeMath.sol";
 
-contract TroveManager is KumoBase, Ownable, CheckContract, ITroveManager {
-    using SafeMath for uint256;
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+contract TroveManager is KumoBase, CheckContract, UUPSUpgradeable, ITroveManager {
+    using SafeMathUpgradeable for uint256;
     
 	// bool public isInitialized;
 
@@ -251,7 +254,7 @@ contract TroveManager is KumoBase, Ownable, CheckContract, ITroveManager {
     )
         external
         override
-        onlyOwner
+        initializer
     {
         // require(!isInitialized, "Already initialized");
         checkContract(_borrowerOperationsAddress);
@@ -266,7 +269,9 @@ contract TroveManager is KumoBase, Ownable, CheckContract, ITroveManager {
         checkContract(_kumoTokenAddress);
         checkContract(_kumoStakingAddress);
         // isInitialized = true;
-		// __Ownable_init();
+		__Ownable_init();
+        __UUPSUpgradeable_init();
+
 
         borrowerOperationsAddress = _borrowerOperationsAddress;
         activePool = IActivePool(_activePoolAddress);
@@ -292,8 +297,10 @@ contract TroveManager is KumoBase, Ownable, CheckContract, ITroveManager {
         emit KUMOTokenAddressChanged(_kumoTokenAddress);
         emit KUMOStakingAddressChanged(_kumoStakingAddress);
 
-        _renounceOwnership();
+        renounceOwnership();
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     // --- Getters ---
 

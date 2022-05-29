@@ -1,6 +1,7 @@
 require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
+require('@openzeppelin/hardhat-upgrades');
 require("solidity-coverage");
 require("hardhat-gas-reporter");
 
@@ -87,6 +88,8 @@ module.exports = {
             blockGasLimit: 150000000, 
             gasPrice: 200000000000,
             initialBaseFeePerGas: 0,
+            allowUnlimitedContractSize: true,
+            blockGasLimit: 0x1fffffffffffff
         },
         mainnet: {
             url: alchemyUrl(),

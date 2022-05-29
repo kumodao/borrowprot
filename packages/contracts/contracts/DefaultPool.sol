@@ -5,10 +5,15 @@ pragma solidity 0.8.11;
 // import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import './Interfaces/IDefaultPool.sol';
-import "./Dependencies/SafeMath.sol";
+// import "./Dependencies/SafeMath.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
+
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /*
  * The Default Pool holds the ETH and KUSD debt (but not KUSD tokens) from liquidations that have been redistributed
@@ -17,9 +22,9 @@ import "./Dependencies/console.sol";
  * When a trove makes an operation that applies its pending ETH and KUSD debt, its pending ETH and KUSD debt is moved
  * from the Default Pool to the Active Pool.
  */
-contract DefaultPool is Ownable, CheckContract, IDefaultPool {
-    using SafeMath for uint256;
-	// bool public isInitialized;
+contract DefaultPool is Initializable, OwnableUpgradeable, CheckContract, UUPSUpgradeable, IDefaultPool {
+    using SafeMathUpgradeable for uint256;
+	bool public isInitialized;
     
     string constant public NAME = "DefaultPool";
 
@@ -39,14 +44,15 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
         address _activePoolAddress
     )
         external
-		onlyOwner
+		initializer
 	{
-		// require(!isInitialized, "Already initialized");
+		require(!isInitialized, "Already initialized");
 		checkContract(_troveManagerAddress);
 		checkContract(_activePoolAddress);
-		// isInitialized = true;
+		isInitialized = true;
 
-		// __Ownable_init();
+		__Ownable_init();
+        __UUPSUpgradeable_init();
 
         troveManagerAddress = _troveManagerAddress;
         activePoolAddress = _activePoolAddress;
@@ -54,8 +60,11 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
 
-        _renounceOwnership();
+        renounceOwnership();
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
 
     // --- Getters for public variables. Required by IPool interface ---
 
