@@ -91,7 +91,7 @@ interface BorrowerOperationsTransactions {
   claimCollateral(_asset: string, _overrides?: Overrides): Promise<void>;
   closeTrove(_asset: string, _overrides?: Overrides): Promise<void>;
   moveETHGainToTrove(_asset: string, _amountMoved: BigNumberish, _borrower: string, _upperHint: string, _lowerHint: string, _overrides?: PayableOverrides): Promise<void>;
-  openTrove(_asset: string, _maxFeePercentage: BigNumberish, _KUSDAmount: BigNumberish, _upperHint: string, _lowerHint: string, _overrides?: PayableOverrides): Promise<void>;
+  openTrove(_asset: string, _tokenAmount: BigNumberish, _maxFeePercentage: BigNumberish, _KUSDAmount: BigNumberish, _upperHint: string, _lowerHint: string, _overrides?: PayableOverrides): Promise<void>;
   repayKUSD(_asset: string, _KUSDAmount: BigNumberish, _upperHint: string, _lowerHint: string, _overrides?: Overrides): Promise<void>;
   setAddresses(_troveManagerAddress: string, _stabilityPoolManagerAddress: string, _gasPoolAddress: string, _collSurplusPoolAddress: string, _sortedTrovesAddress: string, _kusdTokenAddress: string, _kumoStakingAddress: string, _kumoParamsAddress: string, _overrides?: Overrides): Promise<void>;
   setKumoParameters(_vaultParams: string, _overrides?: Overrides): Promise<void>;
@@ -456,7 +456,7 @@ interface KUMOStakingCalls {
 interface KUMOStakingTransactions {
   increaseF_Asset(_asset: string, _AssetFee: BigNumberish, _overrides?: Overrides): Promise<void>;
   increaseF_KUSD(_KUSDFee: BigNumberish, _overrides?: Overrides): Promise<void>;
-  setAddresses(_kumoTokenAddress: string, _kusdTokenAddress: string, _troveManagerAddress: string, _borrowerOperationsAddress: string, _activePoolAddress: string, _treasury: string, _overrides?: Overrides): Promise<void>;
+  setAddresses(_kumoTokenAddress: string, _kusdTokenAddress: string, _troveManagerAddress: string, _borrowerOperationsAddress: string, _activePoolAddress: string, _overrides?: Overrides): Promise<void>;
   stake(_KUMOamount: BigNumberish, _overrides?: Overrides): Promise<void>;
   unstake(_KUMOamount: BigNumberish, _overrides?: Overrides): Promise<void>;
 }

@@ -577,6 +577,11 @@
       },
       {
         "internalType": "uint256",
+        "name": "_tokenAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
         "name": "_maxFeePercentage",
         "type": "uint256"
       },
