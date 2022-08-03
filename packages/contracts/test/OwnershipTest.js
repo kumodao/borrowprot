@@ -2,6 +2,7 @@ const deploymentHelper = require("../utils/deploymentHelpers.js")
 const { TestHelper: th, MoneyValues: mv } = require("../utils/testHelpers.js")
 
 const GasPool = artifacts.require("./GasPool.sol")
+// const KumoParameters = artifacts.require("./KumoParameters.sol")
 const BorrowerOperationsTester = artifacts.require("./BorrowerOperationsTester.sol")
 
 contract('All Kumo functions with onlyOwner modifier', async accounts => {
@@ -79,13 +80,13 @@ contract('All Kumo functions with onlyOwner modifier', async accounts => {
 
   describe('TroveManager', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(troveManager, 11)
+      await testSetAddresses(troveManager, 9)
     })
   })
 
   describe('BorrowerOperations', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(borrowerOperations, 10)
+      await testSetAddresses(borrowerOperations, 8)
     })
   })
 
@@ -97,7 +98,7 @@ contract('All Kumo functions with onlyOwner modifier', async accounts => {
 
   describe('StabilityPool', async accounts => {
     it("setAddresses(): reverts when called by non-owner, with wrong addresses, or twice", async () => {
-      await testSetAddresses(stabilityPool, 7)
+      await testSetAddresses(stabilityPool, 6)
     })
   })
 

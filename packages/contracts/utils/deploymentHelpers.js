@@ -5,6 +5,7 @@ const KUSDToken = artifacts.require("./KUSDToken.sol")
 const ActivePool = artifacts.require("./ActivePool.sol");
 const DefaultPool = artifacts.require("./DefaultPool.sol");
 const StabilityPool = artifacts.require("./StabilityPool.sol")
+const StabilityPoolManager = artifacts.require("./StabilityPoolManager.sol")
 const GasPool = artifacts.require("./GasPool.sol")
 const CollSurplusPool = artifacts.require("./CollSurplusPool.sol")
 const FunctionCaller = artifacts.require("./TestContracts/FunctionCaller.sol")
@@ -15,6 +16,8 @@ const KUMOStaking = artifacts.require("./KUMOStaking.sol")
 const KUMOToken = artifacts.require("./KUMOToken.sol")
 const LockupContractFactory = artifacts.require("./LockupContractFactory.sol")
 const CommunityIssuance = artifacts.require("./CommunityIssuance.sol")
+
+const KumoParameters = artifacts.require("./KumoParameters.sol")
 
 const Unipool =  artifacts.require("./Unipool.sol")
 
@@ -27,6 +30,7 @@ const KumoMathTester = artifacts.require("./KumoMathTester.sol")
 const BorrowerOperationsTester = artifacts.require("./BorrowerOperationsTester.sol")
 const TroveManagerTester = artifacts.require("./TroveManagerTester.sol")
 const KUSDTokenTester = artifacts.require("./KUSDTokenTester.sol")
+const ERC20Test = artifacts.require("./ERC20Test.sol")
 
 // Proxy scripts
 const BorrowerOperationsScript = artifacts.require('BorrowerOperationsScript')
@@ -91,6 +95,7 @@ class DeploymentHelper {
     const troveManager = await TroveManager.new()
     const activePool = await ActivePool.new()
     const stabilityPool = await StabilityPool.new()
+    const stabilityPoolManager = await StabilityPoolManager.new()
     const gasPool = await GasPool.new()
     const defaultPool = await DefaultPool.new()
     const collSurplusPool = await CollSurplusPool.new()
@@ -99,9 +104,11 @@ class DeploymentHelper {
     const hintHelpers = await HintHelpers.new()
     const kusdToken = await KUSDToken.new(
       troveManager.address,
-      stabilityPool.address,
+      stabilityPoolManager.address,
       borrowerOperations.address
     )
+    const kumoParameters = await KumoParameters.new()
+
     KUSDToken.setAsDeployed(kusdToken)
     DefaultPool.setAsDeployed(defaultPool)
     PriceFeedTestnet.setAsDeployed(priceFeedTestnet)
@@ -114,6 +121,7 @@ class DeploymentHelper {
     FunctionCaller.setAsDeployed(functionCaller)
     BorrowerOperations.setAsDeployed(borrowerOperations)
     HintHelpers.setAsDeployed(hintHelpers)
+    KumoParameters.setAsDeployed(kumoParameters)
 
     const coreContracts = {
       priceFeedTestnet,
@@ -122,12 +130,14 @@ class DeploymentHelper {
       troveManager,
       activePool,
       stabilityPool,
+      stabilityPoolManager,
       gasPool,
       defaultPool,
       collSurplusPool,
       functionCaller,
       borrowerOperations,
-      hintHelpers
+      hintHelpers,
+      kumoParameters
     }
     return coreContracts
   }
@@ -143,6 +153,7 @@ class DeploymentHelper {
     testerContracts.activePool = await ActivePoolTester.new()
     testerContracts.defaultPool = await DefaultPoolTester.new()
     testerContracts.stabilityPool = await StabilityPoolTester.new()
+    testerContracts.stabilityPoolManager = await StabilityPoolManager.new()
     testerContracts.gasPool = await GasPool.new()
     testerContracts.collSurplusPool = await CollSurplusPool.new()
     testerContracts.math = await KumoMathTester.new()
@@ -150,9 +161,12 @@ class DeploymentHelper {
     testerContracts.troveManager = await TroveManagerTester.new()
     testerContracts.functionCaller = await FunctionCaller.new()
     testerContracts.hintHelpers = await HintHelpers.new()
+    testerContracts.kumoParameters = await KumoParameters.new()
+    testerContracts.erc20 = await ERC20Test.new()
+    // ERC20Test.setAsDeployed(testerContracts.erc20);
     testerContracts.kusdToken =  await KUSDTokenTester.new(
       testerContracts.troveManager.address,
-      testerContracts.stabilityPool.address,
+      testerContracts.stabilityPoolManager.address,
       testerContracts.borrowerOperations.address
     )
     return testerContracts
@@ -287,7 +301,7 @@ class DeploymentHelper {
   static async deployKUSDTokenTester(contracts) {
     contracts.kusdToken = await KUSDTokenTester.new(
       contracts.troveManager.address,
-      contracts.stabilityPool.address,
+      contracts.stabilityPoolManager.address,
       contracts.borrowerOperations.address
     )
     return contracts
@@ -338,50 +352,51 @@ class DeploymentHelper {
     await contracts.functionCaller.setTroveManagerAddress(contracts.troveManager.address)
     await contracts.functionCaller.setSortedTrovesAddress(contracts.sortedTroves.address)
 
+    await contracts.kumoParameters.setAddresses(
+      contracts.activePool.address,
+      contracts.defaultPool.address,
+      contracts.priceFeedTestnet.address
+    )
+
     // set contracts in the Trove Manager
     await contracts.troveManager.setAddresses(
       contracts.borrowerOperations.address,
-      contracts.activePool.address,
-      contracts.defaultPool.address,
-      contracts.stabilityPool.address,
+      contracts.stabilityPoolManager.address,
       contracts.gasPool.address,
       contracts.collSurplusPool.address,
-      contracts.priceFeedTestnet.address,
       contracts.kusdToken.address,
       contracts.sortedTroves.address,
       KUMOContracts.kumoToken.address,
-      KUMOContracts.kumoStaking.address
+      KUMOContracts.kumoStaking.address,
+      contracts.kumoParameters.address
     )
 
-    // set contracts in BorrowerOperations 
+    // set contracts in BorrowerOperations
     await contracts.borrowerOperations.setAddresses(
       contracts.troveManager.address,
-      contracts.activePool.address,
-      contracts.defaultPool.address,
-      contracts.stabilityPool.address,
+      contracts.stabilityPoolManager.address,
       contracts.gasPool.address,
       contracts.collSurplusPool.address,
-      contracts.priceFeedTestnet.address,
       contracts.sortedTroves.address,
       contracts.kusdToken.address,
-      KUMOContracts.kumoStaking.address
+      KUMOContracts.kumoStaking.address,
+      contracts.kumoParameters.address
     )
 
     // set contracts in the Pools
-    await contracts.stabilityPool.setAddresses(
-      contracts.borrowerOperations.address,
-      contracts.troveManager.address,
-      contracts.activePool.address,
-      contracts.kusdToken.address,
-      contracts.sortedTroves.address,
-      contracts.priceFeedTestnet.address,
-      KUMOContracts.communityIssuance.address
-    )
+    // await contracts.stabilityPool.setAddresses(
+    //   contracts.borrowerOperations.address,
+    //   contracts.troveManager.address,
+    //   contracts.kusdToken.address,
+    //   contracts.sortedTroves.address,
+    //   KUMOContracts.communityIssuance.address,
+    //   contracts.kumoParameters.address
+    // )
 
     await contracts.activePool.setAddresses(
       contracts.borrowerOperations.address,
       contracts.troveManager.address,
-      contracts.stabilityPool.address,
+      contracts.stabilityPoolManager.address,
       contracts.defaultPool.address
     )
 
@@ -399,7 +414,8 @@ class DeploymentHelper {
     // set contracts in HintHelpers
     await contracts.hintHelpers.setAddresses(
       contracts.sortedTroves.address,
-      contracts.troveManager.address
+      contracts.troveManager.address,
+      contracts.kumoParameters.address
     )
   }
 
@@ -409,17 +425,19 @@ class DeploymentHelper {
   }
 
   static async connectKUMOContractsToCore(KUMOContracts, coreContracts) {
+    // const treasurySig = await KUMOContracts.kumoToken.treasury();
     await KUMOContracts.kumoStaking.setAddresses(
       KUMOContracts.kumoToken.address,
       coreContracts.kusdToken.address,
       coreContracts.troveManager.address, 
       coreContracts.borrowerOperations.address,
       coreContracts.activePool.address
+      // treasurySig
     )
   
     await KUMOContracts.communityIssuance.setAddresses(
       KUMOContracts.kumoToken.address,
-      coreContracts.stabilityPool.address
+      coreContracts.stabilityPoolManager.address
     )
   }
 
